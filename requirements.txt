@@ -1,0 +1,8 @@
+opencv-python~=4.5.2.54
+matplotlib~=3.4.2
+imagehash~=4.2.0
+scenedetect~=0.5.5
+mxnet~=1.7.0.post2
+numpy~=1.16.6
+imutils~=0.5.4
+tqdm~=4.61.1
