@@ -31,13 +31,13 @@ def find_scenes(video_path, output_dir='output'):
   scene_list = scene_manager.get_scene_list()
   # Each scene is a tuple of (start, end) FrameTimecodes.
 
+  print('\nSaving scenes frames...')
   save_images(
     scene_list=scene_list,
     video_manager=video_manager,
     num_images=3,
     output_dir=output_dir,
     show_progress=True)
-  print()
 
 
 def face_area_percent(image, cascade_file=CASCADE_FILE_PATH):
@@ -72,14 +72,17 @@ def check_face(image):
 
 
 def analyze_video(path_to_video, output_dir):
+  print(f'Analize video {path_to_video}...')
   temp = 'Temp'
   if not os.path.exists(temp):
     os.makedirs(temp)
   for f in os.listdir(temp):
     os.remove(os.path.join(temp, f))
+  print('Searching for scenes...')
   find_scenes(path_to_video, output_dir=temp)
   prev = None
 
+  print('\nFiltering frames by similarity and faces absence...')
   for root, _, files in tqdm(os.walk(temp), position=0):
     for file in tqdm(sorted(files), position=1, leave=False):
       file_name = os.path.join(root, file)
@@ -98,6 +101,8 @@ def analyze_video(path_to_video, output_dir):
     for name in dirs:
       os.rmdir(os.path.join(root, name))
   os.rmdir(temp)
+
+  print(f'\nDone {path_to_video}!')
 
 
 def parse_folder(folder, output_dir):
