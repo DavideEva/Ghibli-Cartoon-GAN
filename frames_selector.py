@@ -27,6 +27,10 @@ file_list_column = [
     sg.In('1', size=(25, 1), enable_events=True, key="-SCENE-"),
   ],
   [
+    sg.Text("Current Film"),
+    sg.Text("???", key="-CURR-FILM-", size=(10, 1)),
+  ],
+  [
     sg.Text("Current frame"),
     sg.Text("0", key="-CURR-FRAME-", size=(10, 1)),
   ],
@@ -123,7 +127,12 @@ if __name__ == '__main__':
       window.write_event_value('-NEXT-', values)
       window["-START-"].update(disabled=True)
     elif event == "-NEXT-":
-      root, files = next(g, (None, None))
+      root_t, files = next(g, (None, None))
+      if root is not None and root_t.split(os.sep)[-2] != root.split(os.sep)[-2]:
+        print(root, root_t)
+        next_scene = 1
+      root = root_t
+      window["-CURR-FILM-"].update(value=root.split(os.sep)[-2])
       scene_n = extract_scene_number(root)
       if scene_n >= next_scene:
         next_scene = scene_n + 1
