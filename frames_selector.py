@@ -128,8 +128,10 @@ if __name__ == '__main__':
       window["-START-"].update(disabled=True)
     elif event == "-NEXT-":
       root_t, files = next(g, (None, None))
+      if root_t is None:
+        window.close()
+        break
       if root is not None and root_t.split(os.sep)[-2] != root.split(os.sep)[-2]:
-        print(root, root_t)
         next_scene = 1
       root = root_t
       window["-CURR-FILM-"].update(value=root.split(os.sep)[-2])
@@ -140,9 +142,6 @@ if __name__ == '__main__':
         window.write_event_value('-NEXT-', values)
         continue
       window["-CURR-FRAME-"].update(value=f'{next_scene}')
-      if root is None:
-        window.close()
-        break
       files = sorted(files)
       image = cv2.imread(os.path.join(root, files[0]))
       image = cv2.resize(image, dsize=(IMG_SIZE, IMG_SIZE))
