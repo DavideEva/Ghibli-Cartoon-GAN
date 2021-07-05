@@ -14,12 +14,12 @@ import numpy as np
 file_list_column = [
   [
     sg.Text("Input Frame Folder"),
-    sg.In('./img', size=(25, 1), enable_events=True, key="-FOLDER-IN-"),
+    sg.In('img', size=(25, 1), enable_events=True, key="-FOLDER-IN-"),
     sg.FolderBrowse(initial_folder='img'),
   ],
   [
     sg.Text("Output Frame Folder"),
-    sg.In('./output', size=(25, 1), enable_events=True, key="-FOLDER-OUT-"),
+    sg.In('output', size=(25, 1), enable_events=True, key="-FOLDER-OUT-"),
     sg.FolderBrowse(initial_folder='output'),
   ],
   [
