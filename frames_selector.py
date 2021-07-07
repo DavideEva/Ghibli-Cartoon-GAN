@@ -102,10 +102,17 @@ def extract_scene_number(root):
   return int(scene_folder)
 
 
+def image_to_base64(image_path):
+  image = cv2.imread(image_path)
+  image = cv2.resize(image, dsize=(IMG_SIZE, IMG_SIZE))
+  _, buffer = cv2.imencode(".png", image)
+  return base64.b64encode(buffer)
+
+
 if __name__ == '__main__':
   input_folder = os.path.join(os.path.curdir, 'img')
   output_folder = os.path.join(os.path.curdir, 'output')
-  root, files = None, None
+  root, files, images = None, None, []
   g = None
   i = 0
   next_scene = 1
@@ -140,12 +147,9 @@ if __name__ == '__main__':
         continue
       window["-CURR-FRAME-"].update(value=f'{next_scene}')
       files = sorted(files)
-      image = cv2.imread(os.path.join(root, files[0]))
-      image = cv2.resize(image, dsize=(IMG_SIZE, IMG_SIZE))
-      _, buffer = cv2.imencode(".png", image)
       window["-TOUT-1-"].update(files[0])
-      window["-IMAGE-1-"].update(data=base64.b64encode(buffer))
-
+      window["-IMAGE-1-"].update(data=image_to_base64(os.path.join(root, files[0])))
+      images = list(map(image_to_base64, map(lambda x: os.path.join(root, x), files)))
     elif event is not None and (event.startswith('Right') or event == 'd' or event == 'y'):
       if root is not None and files is not None:
         print('Images accepted!')
@@ -157,11 +161,8 @@ if __name__ == '__main__':
         window.write_event_value('-NEXT-', values)
     elif files is not None and event == "__TIMEOUT__":
       i = (i+1)%len(files)
-      image = cv2.imread(os.path.join(root, files[i]))
-      image = cv2.resize(image, dsize=(IMG_SIZE, IMG_SIZE))
-      _, buffer = cv2.imencode(".png", image)
       window["-TOUT-2-"].update(files[i])
-      window["-IMAGE-2-"].update(data=base64.b64encode(buffer))
+      window["-IMAGE-2-"].update(data=images[i])
     if event == "Exit" or event == sg.WIN_CLOSED:
       window.close()
       break
