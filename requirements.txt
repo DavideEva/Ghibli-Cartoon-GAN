@@ -5,3 +5,5 @@ scenedetect~=0.5.5
 numpy
 imutils~=0.5.4
 tqdm~=4.61.1
+pysimplegui
+opencv-contrib-python~=4.5.2.54

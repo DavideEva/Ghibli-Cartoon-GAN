@@ -1,11 +1,8 @@
 import base64
-import glob
+import os.path
 import shutil
 
 import PySimpleGUI as sg
-import os.path
-import io
-
 # First the window layout in 2 columns
 import cv2
 
@@ -91,12 +88,11 @@ def move_images(root, files, output_dir):
       continue
     if not compare_images(prev, image):
       valid_index.append(idx)
-  print(root.split(os.sep)[0], output_dir)
   output_root = root.replace(root.split(os.sep)[0], output_dir, 1)
   if not os.path.exists(output_root):
     os.makedirs(output_root)
   for idx in valid_index:
-    shutil.move(os.path.join(root, files[idx]), os.path.join(output_root, files[idx]))
+    shutil.copy(os.path.join(root, files[idx]), os.path.join(output_root, files[idx]))
 
 
 def extract_scene_number(root):
