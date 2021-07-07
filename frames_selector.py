@@ -16,7 +16,7 @@ file_list_column = [
   ],
   [
     sg.Text("Output Frame Folder"),
-    sg.In('output', size=(25, 1), enable_events=True, key="-FOLDER-OUT-"),
+    sg.In('res/img', size=(25, 1), enable_events=True, key="-FOLDER-OUT-"),
     sg.FolderBrowse(initial_folder='./'),
   ],
   [
@@ -35,7 +35,7 @@ file_list_column = [
     sg.Button("Start", key="-START-")
   ],
   [
-    sg.Text("'Left arrow'/A/Y for NO\n'Right arrow'/D/N for YES"),
+    sg.Text("'Left arrow'/A/N for NO\n'Right arrow'/D/Y for YES"),
   ]
 ]
 
@@ -88,6 +88,7 @@ def move_images(root, files, output_dir):
       continue
     if not compare_images(prev, image):
       valid_index.append(idx)
+      prev = image
   output_root = root.replace(root.split(os.sep)[0], output_dir, 1)
   if not os.path.exists(output_root):
     os.makedirs(output_root)
