@@ -13,9 +13,6 @@ from scenedetect import SceneManager
 from scenedetect.scene_manager import save_images
 from tqdm import tqdm
 
-RESOURCE_PATH = 'res'
-CASCADE_FILE_PATH = os.path.join(RESOURCE_PATH, 'cascade/lbpcascade_animeface.xml')
-
 
 def find_scenes(video_path, output_dir='output'):
   video_manager = VideoManager([video_path])
