@@ -81,9 +81,12 @@ def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda 
     os.makedirs(dest_left, exist_ok=True)
     os.makedirs(dest_right, exist_ok=True)
     for file in files:
-        if os.path.isfile(os.path.join(dest_left, file)):
+        if os.path.exists(os.path.join(dest_left, file)):
             continue  # Skip if already exist
-        img = cv2.cvtColor(cv2.imread(os.path.join(root, file)), cv2.COLOR_BGR2RGB)
+        img = cv2.imread(os.path.join(root, file))
+        if img is None:
+            continue
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         preprocessed_img = preprocess(resize_image_height(img, preprocess_shape[0]))
         left_part = left_crop(preprocessed_img)
         right_part = right_crop(preprocessed_img)
