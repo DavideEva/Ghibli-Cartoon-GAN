@@ -15,6 +15,16 @@ preprocess_shape = (384, 384, 3)
 final_shape = (256, 256, 3)
 
 
+def resize_image_height(img, height):
+    original_h, original_w, _ = img.shape
+    scale_factor = height / original_h
+    scaled_w = round(original_w * scale_factor)
+    scaled_h = round(original_h * scale_factor)
+    scaled_size = (scaled_w, scaled_h)
+    resized = cv2.resize(img, scaled_size)
+    return resized
+
+
 def left_crop(img):
     return img[:, 0:img.shape[0], :]
 
@@ -71,18 +81,17 @@ def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda 
     os.makedirs(dest_left, exist_ok=True)
     os.makedirs(dest_right, exist_ok=True)
     for file in files:
+        if os.path.isfile(os.path.join(dest_left, file)):
+            continue  # Skip if already exist
         img = cv2.cvtColor(cv2.imread(os.path.join(root, file)), cv2.COLOR_BGR2RGB)
-        target_size = (raw_shape[1] * preprocess_shape[0] // raw_shape[0], preprocess_shape[0])
-        preprocess_img = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
-        left_part = left_crop(preprocess_img)
-        right_part = right_crop(preprocess_img)
-        left_part = preprocess(left_part)
-        right_part = preprocess(right_part)
+        preprocessed_img = preprocess(resize_image_height(img, preprocess_shape[0]))
+        left_part = left_crop(preprocessed_img)
+        right_part = right_crop(preprocessed_img)
         save_rgb_image(os.path.join(dest_left, file), left_part)
         save_rgb_image(os.path.join(dest_right, file), right_part)
 
 
-def parse_folder(folder, output_dir, parse_real=False):
+def parse_folder(folder, output_dir, images_are_real=False):
     if folder is None or output_dir is None:
         print(
             "Input folder not specified" if folder is None else "" + "Output folder not specified" if output_dir is None else "")
@@ -93,7 +102,7 @@ def parse_folder(folder, output_dir, parse_real=False):
     for root, dirs, files in os.walk(folder):
         if len(files) > 0:
             _parse_folder(root, folder, output_dir, 'real', files)
-            if not parse_real:
+            if not images_are_real:
                 _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x))
 
 
