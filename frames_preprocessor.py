@@ -63,7 +63,26 @@ def save_rgb_image(file_name, image):
     )
 
 
-def parse_folder(folder, output_dir):
+def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x):
+    rel_path = os.path.relpath(root, folder)
+    dest = os.path.join(output_dir, dest_type, rel_path)
+    dest_left = os.path.join(dest, "left")
+    dest_right = os.path.join(dest, "right")
+    os.makedirs(dest_left, exist_ok=True)
+    os.makedirs(dest_right, exist_ok=True)
+    for file in files:
+        img = cv2.cvtColor(cv2.imread(os.path.join(root, file)), cv2.COLOR_BGR2RGB)
+        target_size = (raw_shape[1] * preprocess_shape[0] // raw_shape[0], preprocess_shape[0])
+        preprocess_img = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
+        left_part = left_crop(preprocess_img)
+        right_part = right_crop(preprocess_img)
+        left_part = preprocess(left_part)
+        right_part = preprocess(right_part)
+        save_rgb_image(os.path.join(dest_left, file), left_part)
+        save_rgb_image(os.path.join(dest_right, file), right_part)
+
+
+def parse_folder(folder, output_dir, parse_real=False):
     if folder is None or output_dir is None:
         print(
             "Input folder not specified" if folder is None else "" + "Output folder not specified" if output_dir is None else "")
@@ -72,37 +91,19 @@ def parse_folder(folder, output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
     for root, dirs, files in os.walk(folder):
-        rel_path = os.path.relpath(root, folder)
-        dest_real = os.path.join(output_dir, "real", rel_path)
-        dest_smooth = os.path.join(output_dir, "smooth", rel_path)
-        dest_real_left = os.path.join(dest_real, "left")
-        dest_real_right = os.path.join(dest_real, "right")
-        dest_smooth_left = os.path.join(dest_smooth, "left")
-        dest_smooth_right = os.path.join(dest_smooth, "right")
         if len(files) > 0:
-            os.makedirs(dest_real_left, exist_ok=True)
-            os.makedirs(dest_real_right, exist_ok=True)
-            os.makedirs(dest_smooth_left, exist_ok=True)
-            os.makedirs(dest_smooth_right, exist_ok=True)
-            for file in files:
-                img = cv2.cvtColor(cv2.imread(os.path.join(root, file)), cv2.COLOR_BGR2RGB)
-                target_size = (raw_shape[1] * preprocess_shape[0] // raw_shape[0], preprocess_shape[0])
-                preprocess_img = cv2.resize(img, target_size, interpolation=cv2.INTER_AREA)
-                left_part = left_crop(preprocess_img)
-                right_part = right_crop(preprocess_img)
-                left_part_smooth = smooth_edges(left_part)
-                right_part_smooth = smooth_edges(right_part)
-                save_rgb_image(os.path.join(dest_real_left, file), left_part)
-                save_rgb_image(os.path.join(dest_real_right, file), right_part)
-                save_rgb_image(os.path.join(dest_smooth_left, file), left_part_smooth)
-                save_rgb_image(os.path.join(dest_smooth_right, file), right_part_smooth)
+            _parse_folder(root, folder, output_dir, 'real', files)
+            if not parse_real:
+                _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x))
+
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', type=str, help='Input folder')
     parser.add_argument('-o', type=str, help='Output folder', default='img')
-    parse_folder(parser.parse_args().i, parser.parse_args().o)
+    parser.add_argument('-r', type=bool, help='Preprocess real images', default=False)
+    parse_folder(parser.parse_args().i, parser.parse_args().o, parser.parse_args().r)
 
 
 if __name__ == '__main__':
