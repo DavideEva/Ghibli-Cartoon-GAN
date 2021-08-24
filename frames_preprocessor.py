@@ -59,6 +59,8 @@ def smooth_edges(img):
 
 
 def save_rgb_image(file_name, image):
+    if image.shape[0] != image.shape[1]:
+        return
     print(file_name)
     cv2.imwrite(
         file_name,
