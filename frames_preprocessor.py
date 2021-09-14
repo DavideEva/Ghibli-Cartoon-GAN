@@ -33,6 +33,12 @@ def right_crop(img):
     return img[:, -img.shape[0]:, :]
 
 
+def smooth_all(img):
+    kernel_size = 5
+    kernel = np.ones((kernel_size, kernel_size), np.float32) / 25
+    return cv2.filter2D(img, -1, kernel)
+
+
 def smooth_edges(img):
     # Parameters taken from https://github.com/FilipAndersson245/cartoon-gan/blob/master/utils/datasets.py
     kernel_size = 5
