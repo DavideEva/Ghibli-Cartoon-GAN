@@ -81,25 +81,41 @@ def save_rgb_image(file_name, image):
     )
 
 
-def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x):
+def compare_images(image1, image2):
+    avg_hash = cv2.img_hash.AverageHash_create()
+    cutoff = 8
+    return avg_hash.compare(avg_hash.compute(image1), avg_hash.compute(image2)) < cutoff
+
+
+def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x, to_skip=[]):
     rel_path = os.path.relpath(root, folder)
     dest = os.path.join(output_dir, dest_type, rel_path)
     dest_left = os.path.join(dest, "left")
     dest_right = os.path.join(dest, "right")
-    os.makedirs(dest_left, exist_ok=True)
-    os.makedirs(dest_right, exist_ok=True)
-    for file in files:
-        if os.path.exists(os.path.join(dest_left, file)):
-            continue  # Skip if already exist
-        img = cv2.imread(os.path.join(root, file))
-        if img is None:
-            continue
-        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        preprocessed_img = preprocess(resize_image_height(img, preprocess_shape[0]))
-        left_part = left_crop(preprocessed_img)
-        right_part = right_crop(preprocessed_img)
-        save_rgb_image(os.path.join(dest_left, file), left_part)
-        save_rgb_image(os.path.join(dest_right, file), right_part)
+    skipped = []
+    if any(map(lambda f: f.endswith('.jpg') or f.endswith('.png'), files)):
+        os.makedirs(dest_left, exist_ok=True)
+        os.makedirs(dest_right, exist_ok=True)
+        prev = None
+        for idx, file in enumerate(files):
+            if idx in to_skip:
+                continue
+            if os.path.exists(os.path.join(dest_left, file)):
+                continue  # Skip if already exist
+            img = cv2.imread(os.path.join(root, file))
+            if img is None:
+                continue
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            preprocessed_img = preprocess(resize_image_height(img, preprocess_shape[0]))
+            if prev is not None and compare_images(prev, preprocessed_img):
+                skipped.append(idx)
+                continue
+            prev = preprocessed_img
+            left_part = left_crop(preprocessed_img)
+            right_part = right_crop(preprocessed_img)
+            save_rgb_image(os.path.join(dest_left, file), left_part)
+            save_rgb_image(os.path.join(dest_right, file), right_part)
+    return skipped
 
 
 def parse_folder(folder, output_dir, images_are_real=False):
@@ -112,10 +128,9 @@ def parse_folder(folder, output_dir, images_are_real=False):
 
     for root, dirs, files in os.walk(folder):
         if len(files) > 0:
-            _parse_folder(root, folder, output_dir, 'real', files)
+            skipped = _parse_folder(root, folder, output_dir, 'real', files)
             if not images_are_real:
-                _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x))
-
+                _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x), to_skip=skipped)
 
 
 def main():
