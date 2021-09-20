@@ -47,7 +47,7 @@ def parse_folder(folder, output_dir, frames_per_scene):
     for v in files:
       if v.endswith('.mp4') or v.endswith('.mkv'):
         rel_path = os.path.relpath(root, folder)
-        dest = os.path.join(output_dir, rel_path)
+        dest = os.path.join(output_dir, rel_path, os.path.basename(v))
         src = os.path.join(root, v)
         if not os.path.exists(dest):
           os.makedirs(dest)
