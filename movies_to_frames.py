@@ -30,7 +30,7 @@ def find_scenes(video_path, output_dir='output', frames_per_scene=3):
     num_images=frames_per_scene,
     output_dir=output_dir,
     show_progress=True,
-    image_name_template='Scene-$SCENE_NUMBER/Frame-$IMAGE_NUMBER')
+    image_name_template='Scene-$SCENE_NUMBER.Frame-$IMAGE_NUMBER')
 
 
 def analyze_video(path_to_video, output_dir, frames_per_scene):

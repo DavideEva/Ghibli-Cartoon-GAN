@@ -52,6 +52,7 @@ def smooth_edges(img):
     idx = np.where(dilation != 0)
     loops = len(idx[0])
     gauss_img = np.copy(img)
+
     for i in range(loops):
         # debug edges detection:
         # gauss_img[idx[0][i], idx[1][i], 0], gauss_img[idx[0][i], idx[1][i], 1], gauss_img[idx[0][i], idx[1][i], 2] = (1.0, 1.0, 0.0)
@@ -90,17 +91,17 @@ def compare_images(image1, image2):
 def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x, to_skip=[]):
     rel_path = os.path.relpath(root, folder)
     dest = os.path.join(output_dir, dest_type, rel_path)
-    dest_left = os.path.join(dest, "left")
-    dest_right = os.path.join(dest, "right")
     skipped = []
     if any(map(lambda f: f.endswith('.jpg') or f.endswith('.png'), files)):
-        os.makedirs(dest_left, exist_ok=True)
-        os.makedirs(dest_right, exist_ok=True)
         prev = None
+        os.makedirs(dest, exist_ok=True)
         for idx, file in enumerate(files):
+            file_dest = file.removesuffix('.jpg').removesuffix('.png')
+            file_dest_left = os.path.join(dest, file_dest + '.left.jpg')
+            file_dest_right = os.path.join(dest, file_dest + '.right.jpg')
             if idx in to_skip:
                 continue
-            if os.path.exists(os.path.join(dest_left, file)):
+            if os.path.exists(file_dest_left):
                 continue  # Skip if already exist
             img = cv2.imread(os.path.join(root, file))
             if img is None:
@@ -113,8 +114,8 @@ def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda 
             prev = preprocessed_img
             left_part = left_crop(preprocessed_img)
             right_part = right_crop(preprocessed_img)
-            save_rgb_image(os.path.join(dest_left, file), left_part)
-            save_rgb_image(os.path.join(dest_right, file), right_part)
+            save_rgb_image(file_dest_left, left_part)
+            save_rgb_image(file_dest_right, right_part)
     return skipped
 
 
