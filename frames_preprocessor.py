@@ -88,7 +88,11 @@ def compare_images(image1, image2):
     return avg_hash.compare(avg_hash.compute(image1), avg_hash.compute(image2)) < cutoff
 
 
-def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x, to_skip=[]):
+def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda x: x, to_skip=None):
+    ignore_diff = True
+    if to_skip is None:
+        to_skip = []
+        ignore_diff = False
     rel_path = os.path.relpath(root, folder)
     dest = os.path.join(output_dir, dest_type, rel_path)
     skipped = []
@@ -108,7 +112,7 @@ def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda 
                 continue
             img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
             preprocessed_img = preprocess(resize_image_height(img, preprocess_shape[0]))
-            if prev is not None and compare_images(prev, preprocessed_img):
+            if not ignore_diff and prev is not None and compare_images(prev, preprocessed_img):
                 skipped.append(idx)
                 continue
             prev = preprocessed_img
