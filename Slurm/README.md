@@ -7,6 +7,10 @@
     ├── setup.sh
     └── start_jupyter_node.sh
     ```
-1. Run `setup.sh`. You need to have permissions (`chmod +x setup.sh`) and you need python3 with virtualenv installed.
-1. Copy your notebook files inside the `cartoon-gan` folder
-1. Run `sbatch start_jupyter_node.sh` to schedule the script on a slurm node
+2. Run `setup.sh`. You need to have permissions (`chmod +x setup.sh`) and you need python3 with virtualenv installed.
+3. Copy your notebook files inside the `cartoon-gan` folder
+4. Adjust the `start_jupyter_node.sh` script with the right folder name for the working directory and the log file
+5. Run `sbatch start_jupyter_node.sh` to schedule the script on a slurm node
+6. Wait a few seconds for slurm
+7. Run `cat <log/file/path>` to see the outputs containing the IP and port of the notebook server, as well as the token/password
+8. Open IP:port (port should always be 8888) in your browser
