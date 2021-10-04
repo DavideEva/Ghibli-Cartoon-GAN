@@ -9,7 +9,7 @@
 #SBATCH --output=/public/jupyter/log/cartoon-gan.jupyter.log
 
 echo Started...
-WD=./cartoon-gan
+WD=/public/jupyter/cartoon-gan
 cd "$WD"
 hostname -I
 cat /etc/hosts
