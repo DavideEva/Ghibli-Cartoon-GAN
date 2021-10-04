@@ -1,4 +1,5 @@
 import argparse
+import multiprocessing
 import os
 import cv2
 import numpy as np
@@ -39,7 +40,7 @@ def smooth_all(img):
     return cv2.filter2D(img, -1, kernel)
 
 
-def smooth_edges(img):
+def smooth_edges(img, return_mask=False):
     # Parameters taken from https://github.com/FilipAndersson245/cartoon-gan/blob/master/utils/datasets.py
     kernel_size = 5
     pad_size = kernel_size // 2 + 1
@@ -47,6 +48,8 @@ def smooth_edges(img):
     pad_img = np.pad(img, ((pad_size, pad_size), (pad_size, pad_size), (0, 0)), mode='reflect')
     edges = cv2.Canny(gray_img, 150, 500)
     dilation = cv2.dilate(edges, np.ones((kernel_size, kernel_size), np.uint8))
+    if return_mask:
+        return cv2.cvtColor(dilation, cv2.COLOR_GRAY2RGB)
     gauss = cv2.getGaussianKernel(kernel_size, 0)
     gauss = gauss * gauss.transpose(1, 0)
     idx = np.where(dilation != 0)
@@ -68,7 +71,8 @@ def smooth_edges(img):
 def save_rgb_image(file_name, image):
     if image.shape[0] != image.shape[1]:
         return
-    print(file_name)
+    # slows down debug:
+    #print(file_name)
     cv2.imwrite(
         file_name,
         cv2.cvtColor(
@@ -123,6 +127,17 @@ def _parse_folder(root, folder, output_dir, dest_type, files, preprocess=lambda 
     return skipped
 
 
+def parse_folder_job(root, folder, output_dir, files, images_are_real):
+    skipped = _parse_folder(root, folder, output_dir, 'real', files)
+    if not images_are_real:
+        _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x), to_skip=skipped)
+        _parse_folder(root, folder, output_dir, 'mask', files, lambda x: smooth_edges(x, return_mask=True), to_skip=skipped)
+
+
+def _call_parse_folder_job(x):
+    parse_folder_job(*x)
+
+
 def parse_folder(folder, output_dir, images_are_real=False):
     if folder is None or output_dir is None:
         print(
@@ -131,11 +146,12 @@ def parse_folder(folder, output_dir, images_are_real=False):
     if not os.path.exists(output_dir):
         os.makedirs(output_dir, exist_ok=True)
 
+    to_preprocess = []
     for root, dirs, files in os.walk(folder):
         if len(files) > 0:
-            skipped = _parse_folder(root, folder, output_dir, 'real', files)
-            if not images_are_real:
-                _parse_folder(root, folder, output_dir, 'smooth', files, lambda x: smooth_edges(x), to_skip=skipped)
+            to_preprocess.append((root, folder, output_dir, files, images_are_real))
+    with multiprocessing.Pool(multiprocessing.cpu_count()) as p:
+        p.map(_call_parse_folder_job, to_preprocess)
 
 
 def main():
