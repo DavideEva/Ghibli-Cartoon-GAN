@@ -13,3 +13,4 @@ pandas
 jupyterlab
 jupyter-http-over-ws
 ipywidgets==7.4.2
+python-dotenv
