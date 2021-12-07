@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 import re
 from io import TextIOWrapper
+from operator import itemgetter
 
 vgg_16_layer = 14
 epochs = 50
@@ -1277,7 +1278,7 @@ def load_evaluate_and_save_epoch(epoch, omega, vgg16_layer, folder, images):
   # convert images to anime
   checkpoint = load_checkpoint(epoch)
   generator = checkpoint.generator
-  cartoon_images = [convert_image_to_anime(image=i, generator=generator, rescale_for_computing=1., stride_percent=0.1)
+  cartoon_images = [convert_image_to_anime(image=i, generator=generator, rescale_for_computing=1., stride_percent=0.2)
             for i in images_path]
 
   # creates folders
@@ -1302,21 +1303,27 @@ def load_evaluate_and_save_epoch(epoch, omega, vgg16_layer, folder, images):
   # copy history.csv
   shutil.copy(os.path.join(local_checkpoint_location, history_file_name), os.path.join(model_folder, history_file_name))
 
-def save_best_checkpoints(omega, vgg_lvl=18, path='bests_checkpoints', min_epoch=0):
+
+def save_best_checkpoints(omega, vgg_lvl=14, path='bests_checkpoints', min_epoch=0):
   # find available checkpoints
-  available_checkpoints = [int(re.search(r'(ckpt-)([0-9]+)(.index)', x)[2]) for x in glob(f'{local_checkpoint_location}/ckpt-*.index')]
+  available_checkpoints = [int(re.search(r'(ckpt-)([0-9]+)(.index)', x)[2]) for x in
+                           glob(f'{local_checkpoint_location}/ckpt-*.index')]
   available_checkpoints = list(filter(lambda x: x >= min_epoch, available_checkpoints))
-  # load dataset from csv+
+  available_ep_checkpoints = {load_checkpoint(ckpt_n).epoch.numpy(): ckpt_n for ckpt_n in available_checkpoints}
+
+  availble_ep = list(map(itemgetter(0), available_ep_checkpoints.items()))
+
+  # load dataset from csv
   df = pd.read_csv(history_file_path, sep=',', header=0)
   df = df.set_index('epoch')
   df = df[~df.index.duplicated(keep='last')]
-  df_available_checkpoints = df[[x in available_checkpoints for x in df.index]]
+  df_available_checkpoints = df[[x in availble_ep for x in df.index]]
 
   # useful columns
   val_gen_loss_mean = 'val_generator_loss_mean'
   fid_score = 'fid_score'
 
-  # search the best epochs
+  # search the best checkpoints
   df_val_gen_loss_mean = df_available_checkpoints[val_gen_loss_mean]
   best_ep_val_gen_loss = df_available_checkpoints.index[np.argmin(df_val_gen_loss_mean)]
   df_fid_score = df_available_checkpoints[fid_score]
@@ -1326,8 +1333,10 @@ def save_best_checkpoints(omega, vgg_lvl=18, path='bests_checkpoints', min_epoch
   best_eps = np.unique([best_ep_val_gen_loss, best_ep_fid_score, last_ep])
 
   for ep in best_eps:
-    print(f'Saving epoch {ep}')
-    load_evaluate_and_save_epoch(ep, omega, vgg_lvl, path, images_path)
+    print(f'Saving epoch {ep} from ckpt {available_ep_checkpoints[ep]}')
+    load_evaluate_and_save_epoch(available_ep_checkpoints[ep], omega, vgg_lvl, path, images_path)
+  print('Done')
+
 
 def main(epochs=None, omega=None):
   epochs = epochs if epochs is not None else 50
