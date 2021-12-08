@@ -1284,7 +1284,7 @@ def load_evaluate_and_save_epoch(epoch, omega, vgg16_layer, folder, images):
   # creates folders
   if not os.path.exists(folder):
     os.mkdir(folder, )
-  model_folder = os.path.join(folder, f'model_e{epoch}_o{omega}_v{vgg16_layer}')
+  model_folder = os.path.join(folder, f'model_e{epoch}_o{omega}_v{vgg16_layer}_{training_folder_suffix}')
   if not os.path.exists(model_folder):
     os.mkdir(model_folder)
   image_folder = os.path.join(model_folder, 'images')
