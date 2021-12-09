@@ -1158,26 +1158,16 @@ def merge_images(final_size, images, positions):
   return np.array(temp_img)
 
 def marge_images_with_weight(final_size, images, positions):
-  def point_in_rect(point, rect):
-    x1, y1, w, h = rect
-    x2, y2 = x1+w, y1+h
-    x, y = point
-    if (x1 <= x and x < x2):
-        if (y1 <= y and y < y2):
-            return True
-    return False
-
   nw, nh = final_size[:2]
+
   weigths = np.zeros((nh, nw))
-  for y in range(nh):
-    for x in range(nw):
-      n = len(list(filter(lambda r: point_in_rect((x, y), r), positions)))
-      weigths[y, x] = n
+  for x, y, w, h in positions:
+    weigths[y:y + h, x:x + w] += np.ones((h, w))
   weigths1 = np.expand_dims(weigths, -1)
   weigths = np.repeat(weigths1, 3, axis=-1)
   output = np.zeros((nh, nw, 3))
   for image, (x, y, w, h) in zip(images, positions):
-    output[y:y+h, x:x+h] += image
+    output[y:y + h, x:x + h] += image
   return np.uint8(output / weigths)
 
 def get_concat_h(im1, im2):
