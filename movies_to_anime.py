@@ -125,19 +125,18 @@ def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
   image_w, image_h = shape
   rect_w, rect_h = shape_rect
   stride_x, stride_y = stride
-  extra_w, extra_h = [], []
+  extra_x = []
+  extra_y = []
   if add_last_rect:
-    extra_h = [image_h - rect_h, ]
-    extra_w = [image_w - rect_w, ]
+    if image_h % stride_y != 0:
+      extra_x.append(image_h - rect_h)
+    if image_w % stride_x != 0:
+      extra_y.append(image_w - rect_w)
 
-  output_rect = []
-  for y in list(range(0, image_h - rect_h + 1, stride_y)) + extra_h:
-    for x in list(range(0, image_w - rect_w + 1, stride_x)) + extra_w:
-      output_rect.append((x, y))
-
-  tuples = np.unique(output_rect, axis=0)
-
-  return [(x, y, rect_w, rect_h) for (x, y) in tuples]
+  [x, y] = np.ogrid[0:image_h - rect_h + 1:stride_y, 0:image_w - rect_w + 1:stride_x]
+  x = np.append(x, extra_x)
+  y = np.append(y, extra_y)
+  return np.array(np.meshgrid(y, x, [rect_h], [rect_w]), dtype=np.uint32).T.reshape(-1, 4)
 
 
 def marge_images_with_weight(final_size, images, positions):
@@ -260,33 +259,40 @@ def count_frames_manual(video):
 
 
 def convert(input, output, weights_path):
-    G = define_generator()
-    G.load_weights(weights_path)
+  G = define_generator()
+  G.load_weights(weights_path)
 
-    total_frames = count_frames(input)
+  total_frames = count_frames(input)
 
-    vidcap = cv2.VideoCapture(input)
-    if not vidcap.isOpened():
-        print("Error opening video stream or file")
-        exit(1)
-    vidcap_out = cv2.VideoWriter(output, 
-            cv2.VideoWriter_fourcc(*'mp4v'),
-            vidcap.get(cv2.CAP_PROP_FPS),
-            (int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-            int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+  vidcap = cv2.VideoCapture(input)
+  if not vidcap.isOpened():
+    print("Error opening video stream or file")
+    exit(1)
+  vidcap_out = cv2.VideoWriter(output, 
+          cv2.VideoWriter_fourcc(*'mp4v'),
+          vidcap.get(cv2.CAP_PROP_FPS),
+          (int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+          int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+  hasFrames, image = vidcap.read()
+  for _ in tqdm(range(total_frames)):
+    if not hasFrames:
+      break
+    vidcap_out.write(convert_image_to_anime(image, G))
     hasFrames, image = vidcap.read()
-    for _ in tqdm(range(total_frames)):
-        if not hasFrames:
-            break
-        vidcap_out.write(convert_image_to_anime(image, G))
-        hasFrames, image = vidcap.read()
-    vidcap.release()
-    vidcap_out.release()
+  vidcap.release()
+  vidcap_out.release()
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Convert movies to anime.')
-    parser.add_argument('-i', '--input', help='Input file.', required=True)
-    parser.add_argument('-o', '--output', help='Output file.', required=True)
-    parser.add_argument('-w', '--weights', help='Weights file.', required=True)
-    args = parser.parse_args()
+  parser = argparse.ArgumentParser(description='Convert movies to anime.')
+  parser.add_argument('-i', '--input', help='Input file.', required=True)
+  parser.add_argument('-o', '--output', help='Output file.', required=True)
+  parser.add_argument('-w', '--weights', help='Weights file.', required=True)
+  parser.add_argument('-t', '--test', help='Test mode.', required=False, action='store_true')
+  args = parser.parse_args()
+  if args.test:
+    print('Test mode started...')
+    print(image_split_coordinate(shape=(7, 9), shape_rect=(3, 3), stride=(3, 3)))
+    assert np.array_equal(image_split_coordinate(shape=(7, 9), shape_rect=(3, 3), stride=(3, 3)), [(0, 0, 3, 3), (0, 3, 3, 3), (0, 6, 3, 3), (3, 0, 3, 3), (3, 3, 3, 3), (3, 6, 3, 3), (4, 0, 3, 3), (4, 3, 3, 3), (4, 6, 3, 3)])
+    print('OK')
+  else:
     convert(args.input, args.output, args.weights)
