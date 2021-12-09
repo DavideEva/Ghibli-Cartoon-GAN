@@ -136,31 +136,16 @@ def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
   [x, y] = np.ogrid[0:image_h - rect_h + 1:stride_y, 0:image_w - rect_w + 1:stride_x]
   x = np.append(x, extra_x)
   y = np.append(y, extra_y)
-  return np.array(np.meshgrid(y, x, [rect_h], [rect_w]), dtype=np.uint32).T.reshape(-1, 4)
+  return np.array(np.meshgrid(y, x, [rect_w], [rect_h]), dtype=np.uint32).T.reshape(-1, 4)
 
 
-def marge_images_with_weight(final_size, images, positions):
-  def point_in_rect(point, rect):
-    x1, y1, w, h = rect
-    x2, y2 = x1+w, y1+h
-    x, y = point
-    if (x1 <= x and x < x2):
-        if (y1 <= y and y < y2):
-            return True
-    return False
-
-  nw, nh = final_size[:2]
-  weigths = np.zeros((nh, nw))
-  for y in range(nh):
-    for x in range(nw):
-      n = len(list(filter(lambda r: point_in_rect((x, y), r), positions)))
-      weigths[y, x] = n
-  weigths1 = np.expand_dims(weigths, -1)
-  weigths = np.repeat(weigths1, 3, axis=-1)
-  output = np.zeros((nh, nw, 3))
+def merge_images_with_weight(final_size, images, positions):
+  output = np.zeros(final_size)
+  output_sum = np.zeros(final_size)
   for image, (x, y, w, h) in zip(images, positions):
-    output[y:y+h, x:x+h] += image
-  return np.uint8(output / weigths)
+    output[y:y+w, x:x+h] += image
+    output_sum[y:y+w, x:x+h] += np.ones((w, h, final_size[2]))
+  return np.uint8(output / output_sum)
 
 def concat_images(im1, im2, RGB=True):
   im1w, im1h = np.shape(im1)[1::-1]
@@ -183,14 +168,10 @@ def convert_image_to_anime(image, generator, stride_fraction=0.22):
                                           shape_rect=(224, 224), 
                                           stride=(int(224*stride_fraction), int(224*stride_fraction)))
 
-  # cut the sub_square from the original image
-  sub_images = []
-  for (x, y, w, h) in sub_squares:
-    sub_image = image[y:y+h, x:x+w].copy()
-    sub_images.append(sub_image)
 
   g_out = []
-  for mini_batch in np.array_split(sub_images, max(1, len(sub_images)//8)):
+  # cut the sub_square from the original image
+  for mini_batch in np.array_split([image[y:y+h, x:x+w] for [x, y, w, h] in sub_squares], max(1, len(sub_squares)//8)):
     # predict
     g_out += [*generator(rescale_and_normalize(np.array(mini_batch)), training=False)]
 
@@ -198,14 +179,10 @@ def convert_image_to_anime(image, generator, stride_fraction=0.22):
   # unnormalize and rescale images
   pred_images = [x*255 for x in generated_to_images(g_out)]
 
-  img_merged_g = marge_images_with_weight(final_size=(*image_dim, 3), 
+  img_merged_g = merge_images_with_weight(final_size=(*image_dim, 3), 
                                           images=pred_images, 
                                           positions=sub_squares)
-  img_merged_g = Image.fromarray(img_merged_g)
-
-  # concat original image and the generated one
-  merged_img = concat_images(np.array(img), np.array(img_merged_g))
-  return merged_img
+  return img_merged_g
 
 def count_frames(path, override=False):
 	# grab a pointer to the video file and initialize the total
@@ -255,9 +232,6 @@ def count_frames_manual(video):
 	# return the total number of frames in the video file
 	return total
 
-
-
-
 def convert(input, output, weights_path):
   G = define_generator()
   G.load_weights(weights_path)
@@ -287,12 +261,5 @@ if __name__ == '__main__':
   parser.add_argument('-i', '--input', help='Input file.', required=True)
   parser.add_argument('-o', '--output', help='Output file.', required=True)
   parser.add_argument('-w', '--weights', help='Weights file.', required=True)
-  parser.add_argument('-t', '--test', help='Test mode.', required=False, action='store_true')
   args = parser.parse_args()
-  if args.test:
-    print('Test mode started...')
-    print(image_split_coordinate(shape=(7, 9), shape_rect=(3, 3), stride=(3, 3)))
-    assert np.array_equal(image_split_coordinate(shape=(7, 9), shape_rect=(3, 3), stride=(3, 3)), [(0, 0, 3, 3), (0, 3, 3, 3), (0, 6, 3, 3), (3, 0, 3, 3), (3, 3, 3, 3), (3, 6, 3, 3), (4, 0, 3, 3), (4, 3, 3, 3), (4, 6, 3, 3)])
-    print('OK')
-  else:
-    convert(args.input, args.output, args.weights)
+  convert(args.input, args.output, args.weights)
