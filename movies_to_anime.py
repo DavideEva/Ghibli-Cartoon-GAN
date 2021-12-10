@@ -139,7 +139,7 @@ def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
   return np.array(np.meshgrid(y, x, [rect_w], [rect_h]), dtype=np.uint32).T.reshape(-1, 4)
 
 
-def merge_images_with_weight(final_size, images, positions):
+def merge_images(final_size, images, positions):
   output = np.zeros(final_size)
   output_sum = np.zeros(final_size)
   for image, (x, y, w, h) in zip(images, positions):
@@ -179,7 +179,7 @@ def convert_image_to_anime(image, generator, stride_fraction=0.22):
   # unnormalize and rescale images
   pred_images = [x*255 for x in generated_to_images(g_out)]
 
-  img_merged_g = merge_images_with_weight(final_size=(*image_dim, 3), 
+  img_merged_g = merge_images(final_size=(*image_dim, 3), 
                                           images=pred_images, 
                                           positions=sub_squares)
   return img_merged_g
