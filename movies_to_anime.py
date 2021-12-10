@@ -247,7 +247,7 @@ def convert(input, output, weights_path):
   for _ in tqdm(range(total_frames)):
     if not hasFrames:
       break
-    vidcap_out.write(convert_image_to_anime(image, G))
+    vidcap_out.write(convert_image_to_anime(cv2.resize(image, dsize=(854, 480)), G))
     hasFrames, image = vidcap.read()
   vidcap.release()
   vidcap_out.release()
