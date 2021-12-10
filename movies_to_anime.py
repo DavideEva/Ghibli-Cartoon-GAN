@@ -122,29 +122,29 @@ def generated_to_images(outputs):
   return [unnormalize(output).numpy() for output in outputs]
 
 def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
-  image_w, image_h = shape
-  rect_w, rect_h = shape_rect
-  stride_x, stride_y = stride
+  image_h, image_w = shape
+  rect_h, rect_w = shape_rect
+  stride_y, stride_x = stride
   extra_x = []
   extra_y = []
   if add_last_rect:
     if image_h % stride_y != 0:
-      extra_x.append(image_h - rect_h)
+      extra_y.append(image_h - rect_h)
     if image_w % stride_x != 0:
-      extra_y.append(image_w - rect_w)
+      extra_x.append(image_w - rect_w)
 
-  [x, y] = np.ogrid[0:image_h - rect_h + 1:stride_y, 0:image_w - rect_w + 1:stride_x]
+  [y, x] = np.ogrid[0:image_h - rect_h + 1:stride_y, 0:image_w - rect_w + 1:stride_x]
   x = np.append(x, extra_x)
   y = np.append(y, extra_y)
   return np.array(np.meshgrid(y, x, [rect_h], [rect_w]), dtype=np.uint32).T.reshape(-1, 4)
 
 
-def merge_images(final_size, images, positions):
-  output = np.zeros(final_size)
-  output_sum = np.zeros(final_size)
+def merge_images(output_shape, images, positions):
+  output = np.zeros(output_shape)
+  output_sum = np.zeros(output_shape)
   for image, (y, x, h, w) in zip(images, positions):
     output[y:y+h, x:x+w] += image
-    output_sum[y:y+h, x:x+w] += np.ones((h, w, final_size[2]))
+    output_sum[y:y+h, x:x+w] += np.ones((h, w, output_shape[2]))
   return np.uint8(output / output_sum)
 
 def concat_images(im1, im2, RGB=True):
@@ -158,16 +158,13 @@ def concat_images(im1, im2, RGB=True):
   return np.array(dst)
 
 def convert_image_to_anime(image, generator, stride_fraction=0.22):
-  real_image_dim = image.shape[1::-1]
-  image_dim = [int(real_image_dim[0]), int(real_image_dim[1])]
   image = np.uint8(image)
 
   # generate the coordinates of the sub_square that will be passed 
   # to the generator
-  sub_squares = image_split_coordinate(shape=image_dim, 
+  sub_squares = image_split_coordinate(shape=image.shape[:2], 
                                           shape_rect=(224, 224), 
                                           stride=(int(224*stride_fraction), int(224*stride_fraction)))
-
 
   g_out = []
   # cut the sub_square from the original image
@@ -175,11 +172,10 @@ def convert_image_to_anime(image, generator, stride_fraction=0.22):
     # predict
     g_out += [*generator(rescale_and_normalize(np.array(mini_batch)), training=False)]
 
-
   # unnormalize and rescale images
   pred_images = [x*255 for x in generated_to_images(g_out)]
 
-  img_merged_g = merge_images(final_size=(*image_dim, 3), 
+  img_merged_g = merge_images(output_shape=image.shape, 
                                           images=pred_images, 
                                           positions=sub_squares)
   return img_merged_g
