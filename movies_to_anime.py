@@ -136,15 +136,15 @@ def image_split_coordinate(shape, shape_rect, stride, add_last_rect=True):
   [x, y] = np.ogrid[0:image_h - rect_h + 1:stride_y, 0:image_w - rect_w + 1:stride_x]
   x = np.append(x, extra_x)
   y = np.append(y, extra_y)
-  return np.array(np.meshgrid(y, x, [rect_w], [rect_h]), dtype=np.uint32).T.reshape(-1, 4)
+  return np.array(np.meshgrid(y, x, [rect_h], [rect_w]), dtype=np.uint32).T.reshape(-1, 4)
 
 
 def merge_images(final_size, images, positions):
   output = np.zeros(final_size)
   output_sum = np.zeros(final_size)
-  for image, (x, y, w, h) in zip(images, positions):
-    output[y:y+w, x:x+h] += image
-    output_sum[y:y+w, x:x+h] += np.ones((w, h, final_size[2]))
+  for image, (y, x, h, w) in zip(images, positions):
+    output[y:y+h, x:x+w] += image
+    output_sum[y:y+h, x:x+w] += np.ones((h, w, final_size[2]))
   return np.uint8(output / output_sum)
 
 def concat_images(im1, im2, RGB=True):
@@ -160,7 +160,7 @@ def concat_images(im1, im2, RGB=True):
 def convert_image_to_anime(image, generator, stride_fraction=0.22):
   real_image_dim = image.shape[1::-1]
   image_dim = [int(real_image_dim[0]), int(real_image_dim[1])]
-  img = Image.fromarray(np.uint8(image))
+  image = np.uint8(image)
 
   # generate the coordinates of the sub_square that will be passed 
   # to the generator
