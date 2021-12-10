@@ -171,7 +171,7 @@ def convert_image_to_anime(image, generator, stride_fraction=0.22):
 
   g_out = []
   # cut the sub_square from the original image
-  for mini_batch in np.array_split([image[y:y+h, x:x+w] for [x, y, w, h] in sub_squares], max(1, len(sub_squares)//8)):
+  for mini_batch in np.array_split([image[y:y+h, x:x+w] for [y, x, h, w] in sub_squares], max(1, len(sub_squares)//8)):
     # predict
     g_out += [*generator(rescale_and_normalize(np.array(mini_batch)), training=False)]
 
