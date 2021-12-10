@@ -238,16 +238,16 @@ def convert(input, output, weights_path):
   if not vidcap.isOpened():
     print("Error opening video stream or file")
     exit(1)
+  output_size = (854, 480) # (int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH), int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT)))
   vidcap_out = cv2.VideoWriter(output, 
           cv2.VideoWriter_fourcc(*'mp4v'),
           vidcap.get(cv2.CAP_PROP_FPS),
-          (int(vidcap.get(cv2.CAP_PROP_FRAME_WIDTH)),
-          int(vidcap.get(cv2.CAP_PROP_FRAME_HEIGHT))))
+          output_size)
   hasFrames, image = vidcap.read()
   for _ in tqdm(range(total_frames)):
     if not hasFrames:
       break
-    vidcap_out.write(convert_image_to_anime(cv2.resize(image, dsize=(854, 480)), G))
+    vidcap_out.write(convert_image_to_anime(cv2.resize(image, dsize=output_size), G))
     hasFrames, image = vidcap.read()
   vidcap.release()
   vidcap_out.release()
